@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="pt-br">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -38,6 +38,8 @@
             </form>
         </div>
     </nav>
+
+    <p id="demo"></p>
     <div class="container">
         <div class="row mt-4">
             <div id="map" class="col-md-10 offset-md-1" style="height: 500px;"></div>
@@ -62,68 +64,93 @@
     -->
     <script>
         // Inicializa o mapa com valores padrão
-        var map = L.map('map').setView([{{ lat }}, {{ lng }}], {{ zoom }});
-    
-        // Adiciona o tile layer do OpenStreetMap
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '© OpenStreetMap'
-        }).addTo(map);
-    
-        // Adiciona um marcador inicial
-        var marker = L.marker([{{ lat }}, {{ lng }}], { draggable: true }).addTo(map)
-            .bindPopup("{{ location }}").openPopup();
-    
-        // Função para atualizar o mapa com novos dados
-        function updateMap(lat, lng, zoom, location) {
-            map.setView([lat, lng], zoom);
-            marker.setLatLng([lat, lng]).bindPopup(location).openPopup();
-        }
-    
-        // Função para obter o nome da rua a partir da coordenada
-        function getAddressFromCoordinates(lat, lng) {
-            fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data && data.display_name) {
-                        const address = data.display_name;
-                        marker.bindPopup(address).openPopup(); // Atualiza o popup com o nome da rua
-                        console.log('Endereço encontrado:', address); // Exibe o endereço no console
-                    }
-                })
-                .catch(error => console.error('Erro ao obter o endereço:', error));
-        }
-    
-        // Evento para quando o marcador for arrastado
-        marker.on('dragend', function(event) {
-            var position = marker.getLatLng();
-            console.log('Novo marcador posicionado em:', position);  // Exibe as novas coordenadas no console
-            marker.setLatLng([position['lat'], position['lng']]); // Atualiza a posição do marcador
-            getAddressFromCoordinates(position['lat'], position['lng']); // Obtém o endereço
-        });
-    
-        // Lida com a submissão do formulário via AJAX
-        document.querySelector('form').addEventListener('submit', function(e) {
-            e.preventDefault();  // Impede o comportamento padrão do formulário
-    
-            var formData = new FormData(this);
-    
-            fetch('', {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRFToken': formData.get('csrfmiddlewaretoken')  // Inclui o CSRF token
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                // Atualiza o mapa com os dados recebidos da view
-                updateMap(data.lat, data.lng, data.zoom, data.location);
-            })
-            .catch(error => console.error('Erro:', error));
-        });
-    </script>
+        const x = document.getElementById("demo");
+        let cord
 
+        function getLocation() {
+            return new Promise((resolve, reject) => {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(resolve, reject);  // Resolve a Promise com os dados de posição
+                } else {
+                    reject("Geolocation is not supported by this browser.");  // Rejeita a Promise se geolocalização não for suportada
+                }
+            });
+        }
+
+        function showPosition(position) {
+            const latitude = position.coords.latitude;
+            const longitude = position.coords.longitude;
+            return {latitude, longitude};
+        }
+        document.addEventListener("DOMContentLoaded", async ()=>{
+            try {
+                const position = await getLocation();  // Aguarda a Promise da geolocalização ser resolvida
+                console.log(position)
+                cord = showPosition(position);  // Chama a função showPosition
+
+                var map = L.map('map').setView([cord.latitude, cord.longitude], 16);
+    
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '© OpenStreetMap'
+                }).addTo(map);
+            
+                // Adiciona um marcador inicial
+                var marker = L.marker([cord.latitude, cord.longitude], { draggable: true }).addTo(map).openPopup();
+
+                function getAddressFromCoordinates(lat, lng) {
+                    fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data && data.display_name) {
+                                const address = data.address["road"] || "Endereço não encontrado";
+                                marker.bindPopup(address).openPopup(); // Atualiza o popup com o nome da rua
+                            }
+                        })
+                        .catch(error => console.error('Erro ao obter o endereço:', error));
+                }
+
+                // Obtém o endereço inicial e atualiza o popup do marcador
+                getAddressFromCoordinates(cord.latitude, cord.longitude);
+            
+                // Função para atualizar o mapa com novos dados
+                function updateMap(lat, lng, zoom, location) {
+                    map.setView([lat, lng], zoom);
+                    marker.setLatLng([lat, lng]).bindPopup(location).openPopup();
+                }
+            
+                // Evento para quando o marcador for arrastado
+                marker.on('dragend', function(event) {
+                    var position = marker.getLatLng();
+                    marker.setLatLng([position['lat'], position['lng']]); // Atualiza a posição do marcador
+                    getAddressFromCoordinates(position['lat'], position['lng']); // Obtém o endereço
+                });
+            
+                // Lida com a submissão do formulário via AJAX
+                document.querySelector('form').addEventListener('submit', function(e) {
+                    e.preventDefault();  // Impede o comportamento padrão do formulário
+            
+                    var formData = new FormData(this);
+            
+                    fetch('', {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRFToken': formData.get('csrfmiddlewaretoken')  // Inclui o CSRF token
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        // Atualiza o mapa com os dados recebidos da view
+                        updateMap(data.lat, data.lng, data.zoom, data.location);
+                    })
+                    .catch(error => console.error('Erro:', error));
+                })
+            } catch (error) {
+                console.error("Erro ao obter geolocalização:", error);  // Lida com erros, se houver
+            }
+        })
+    </script>
 </body>
 </html>
