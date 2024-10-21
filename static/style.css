@@ -1,7 +1,25 @@
+body{
+    height: 100vh;
+}
+
+.container{
+    width: 100%;
+    max-width: inherit;
+}
+
+.tabela{
+    display: flex;
+    align-items: center;
+}
+
 .tabela table{
     width: 100%;
 }
 
 .tabela table {
     border: 1px solid #b22c2c;
+}
+
+.sugestoes-search{
+    position: absolute;
 }

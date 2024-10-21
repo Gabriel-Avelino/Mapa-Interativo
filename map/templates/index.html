@@ -40,10 +40,8 @@
             </form>
         </div>
     </nav>
-
-    <p id="demo"></p>
     <div class="container m-0">
-        <div class="row mt-12">
+        <div class="row mt-12 map-box">
             <div class="tabela col-md-4">
             </div>
             <div id="map" class="col-md-8" style="height: 500px;"></div>
@@ -108,8 +106,13 @@
                         .then(response => response.json())
                         .then(data => {
                             if (data && data.display_name) {
-                                const address = data.address["road"] || "Endereço não encontrado";
-                                marker.bindPopup(address).openPopup(); // Atualiza o popup com o nome da rua
+                                const address = {
+                                    'logradouro': data.address["road"],
+                                    'bairro': data.address["suburb"],
+                                    'cidade': data.address["city"],
+                                    'estado': data.address["state"]
+                                } || "Endereço não encontrado";
+                                marker.bindPopup(address['logradouro']).openPopup(); // Atualiza o popup com o nome da rua
                                 endereco = address
                                 if (callback) {
                                     callback(endereco);  // Chama o callback se ele for fornecido
@@ -120,7 +123,7 @@
                 }
 
                 function getHours(address, callback) {
-                    fetch(`/get_hours?address=${address}`)
+                    fetch(`/get_hours?logradouro=${address['logradouro']}&bairro=${address['bairro']}&cidade=${address['cidade']}&estado=${address['estado']}`)
                         .then(response => response.json())
                         .then(data => {
                             tabela.innerHTML = ''
@@ -186,7 +189,13 @@
                     .then(response => response.json())
                     .then(data => {
                         // Atualiza o mapa com os dados recebidos da view
-                        updateMap(data.lat, data.lng, data.zoom, data.location);
+                        console.log(data.location)
+                        updateMap(data.lat, data.lng, data.zoom, data.location['logradouro']);
+                        
+                        if(data.location['logradouro']){
+                            getHours(data.location)
+                        }
+
                     })
                     .catch(error => console.error('Erro:', error));
                 })

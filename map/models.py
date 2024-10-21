@@ -2,7 +2,10 @@ from django.db import models
 
 # Create your models here.
 class Horario(models.Model):
-    address = models.CharField(max_length=256, null=True)
+    estado = models.CharField(max_length=256, null=True)
+    cidade = models.CharField(max_length=256, null=True)
+    logradouro = models.CharField(max_length=256, null=True)
+    bairro = models.CharField(max_length=256, null=True)
     segunda_diurno = models.TimeField(null=True, blank=True)
     segunda_noturno = models.TimeField(null=True, blank=True)
     terca_diurno = models.TimeField(null=True, blank=True)
@@ -19,4 +22,4 @@ class Horario(models.Model):
     domingo_noturno = models.TimeField(null=True, blank=True)
 
     def __str__(self):
-        return self.address
+        return self.logradouro
