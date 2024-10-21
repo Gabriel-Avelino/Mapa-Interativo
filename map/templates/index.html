@@ -85,7 +85,6 @@
         document.addEventListener("DOMContentLoaded", async ()=>{
             try {
                 const position = await getLocation();  // Aguarda a Promise da geolocalização ser resolvida
-                console.log(position)
                 cord = showPosition(position);  // Chama a função showPosition
 
                 var map = L.map('map').setView([cord.latitude, cord.longitude], 16);
