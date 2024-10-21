@@ -1,6 +1,8 @@
 from django.shortcuts import render
 from opencage.geocoder import OpenCageGeocode
 from django.http import JsonResponse
+from .models import Horario
+from django.views.decorators.http import require_GET
 
 # Chave API do OpenCage
 opencage_key = 'a5e06dcd00a54172bf18379c16c15c2a'
@@ -53,3 +55,15 @@ def index(request):
     }
 
     return render(request, 'index.html', context)
+
+@require_GET
+def get_hours(request):
+    address = request.GET.get('address')
+    
+    if not address:
+        return JsonResponse({'error': 'Dados incompletos'}, status=400)
+    
+    horarios = list(Horario.objects.filter(address = address).values('id', 'address', 'segunda_diurno', 'segunda_noturno', 'terca_diurno', 'terca_noturno', 'quarta_diurno', 'quarta_noturno', 'quinta_diurno', 'quinta_noturno', 'sexta_diurno', 'sexta_noturno', 'sabado_diurno', 'sabado_noturno', 'domingo_diurno', 'domingo_noturno'))
+    
+    return JsonResponse({'horarios': horarios})
+                        

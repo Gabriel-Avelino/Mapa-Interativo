@@ -1,3 +1,4 @@
+{% load static i18n %}
 <!doctype html>
 <html lang="pt-br">
 <head>
@@ -9,6 +10,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css"
         integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N" crossorigin="anonymous">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <link rel="stylesheet" href="{% static 'style.css' %}">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <title>Home Page</title>
 </head>
@@ -40,9 +42,11 @@
     </nav>
 
     <p id="demo"></p>
-    <div class="container">
-        <div class="row mt-4">
-            <div id="map" class="col-md-10 offset-md-1" style="height: 500px;"></div>
+    <div class="container m-0">
+        <div class="row mt-12">
+            <div class="tabela col-md-4">
+            </div>
+            <div id="map" class="col-md-8" style="height: 500px;"></div>
         </div>
     </div>
         <!-- Optional JavaScript; choose one of the two! -->
@@ -66,6 +70,7 @@
         // Inicializa o mapa com valores padrão
         const x = document.getElementById("demo");
         let cord
+        let endereco
 
         function getLocation() {
             return new Promise((resolve, reject) => {
@@ -83,6 +88,7 @@
             return {latitude, longitude};
         }
         document.addEventListener("DOMContentLoaded", async ()=>{
+            const tabela = document.querySelector('.tabela')
             try {
                 const position = await getLocation();  // Aguarda a Promise da geolocalização ser resolvida
                 cord = showPosition(position);  // Chama a função showPosition
@@ -97,20 +103,56 @@
                 // Adiciona um marcador inicial
                 var marker = L.marker([cord.latitude, cord.longitude], { draggable: true }).addTo(map).openPopup();
 
-                function getAddressFromCoordinates(lat, lng) {
+                function getAddressFromCoordinates(lat, lng, callback) {
                     fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`)
                         .then(response => response.json())
                         .then(data => {
                             if (data && data.display_name) {
                                 const address = data.address["road"] || "Endereço não encontrado";
                                 marker.bindPopup(address).openPopup(); // Atualiza o popup com o nome da rua
+                                endereco = address
+                                if (callback) {
+                                    callback(endereco);  // Chama o callback se ele for fornecido
+                                }
                             }
                         })
                         .catch(error => console.error('Erro ao obter o endereço:', error));
                 }
 
+                function getHours(address, callback) {
+                    fetch(`/get_hours?address=${address}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            tabela.innerHTML = ''
+                            if (data.horarios[0]) {
+                                const dias = ['segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado', 'domingo']
+                                const table = document.createElement('table')
+                                dias.forEach( dia => {
+                                    const tr = document.createElement('tr')
+                                    const td = document.createElement('td')
+                                    const tdd = document.createElement('td')
+                                    const tdn = document.createElement('td')
+                                    td.textContent = `${dia}` 
+                                    tdd.textContent = `${data.horarios[0][`${dia}_diurno`]}` 
+                                    tdn.textContent = `${data.horarios[0][`${dia}_noturno`]}`
+                                    tr.appendChild(td)
+                                    tr.appendChild(tdd)
+                                    tr.appendChild(tdn)
+                                    table.appendChild(tr)
+                                })
+                                tabela.appendChild(table)
+                            }
+                            else{
+                                tabela.innerHTML = "A Rockefeller não atende essa rua"
+                            }
+                        })
+                        .catch(error => console.error('Erro ao obter horários:', error));
+                }
+
                 // Obtém o endereço inicial e atualiza o popup do marcador
-                getAddressFromCoordinates(cord.latitude, cord.longitude);
+                getAddressFromCoordinates(cord.latitude, cord.longitude, (endereco) => {
+                    getHours(endereco);  // Aqui o endereço é mostrado fora da função
+                });
             
                 // Função para atualizar o mapa com novos dados
                 function updateMap(lat, lng, zoom, location) {
@@ -122,7 +164,9 @@
                 marker.on('dragend', function(event) {
                     var position = marker.getLatLng();
                     marker.setLatLng([position['lat'], position['lng']]); // Atualiza a posição do marcador
-                    getAddressFromCoordinates(position['lat'], position['lng']); // Obtém o endereço
+                    getAddressFromCoordinates(position['lat'], position['lng'], (endereco) => {
+                        getHours(endereco);  // Aqui o endereço é mostrado fora da função
+                    }); // Obtém o endereço
                 });
             
                 // Lida com a submissão do formulário via AJAX
@@ -149,6 +193,7 @@
             } catch (error) {
                 console.error("Erro ao obter geolocalização:", error);  // Lida com erros, se houver
             }
+            
         })
     </script>
 </body>
