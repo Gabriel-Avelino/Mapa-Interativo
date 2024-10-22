@@ -96,16 +96,25 @@ def get_hours(request):
     
     horarios = list(Horario.objects.filter(logradouro = logradouro, bairro = bairro, cidade = cidade, estado = estado).values('id', 'logradouro', 'segunda_diurno', 'segunda_noturno', 'terca_diurno', 'terca_noturno', 'quarta_diurno', 'quarta_noturno', 'quinta_diurno', 'quinta_noturno', 'sexta_diurno', 'sexta_noturno', 'sabado_diurno', 'sabado_noturno', 'domingo_diurno', 'domingo_noturno'))
     
+    for horario in horarios:
+        for key in horario:
+            if 'diurno' in key or 'noturno' in key:
+                horario[key] = horario[key].strftime('%H:%M') if horario[key] else '-'
     return JsonResponse({'horarios': horarios})
 
 @require_GET
-def search(request):
-    search = request.GET.get('search')
+def autocomplete(request):
+    query = request.GET.get('query', '')
     
-    if not search:
-        return JsonResponse({'error': 'Dados incompletos'}, status=400)
-    
-    sugestions = geocoder.geocode(search)
-    
-    return JsonResponse({'sugestions': sugestions})
+    if query:
+        result = geocoder.geocode(query)
+        
+        if result:
+            suggestions = [r['formatted'] for r in result]  # Limita a 5 sugestões
+        else:
+            suggestions = []
+    else:
+        suggestions = []
+
+    return JsonResponse({'suggestions': suggestions})
                         

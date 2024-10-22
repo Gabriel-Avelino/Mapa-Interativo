@@ -16,11 +16,11 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from map.views import index, get_hours, search
+from map.views import index, get_hours, autocomplete
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', index, name='home'),
     path('get_hours/', get_hours, name='get_hours'),
-    path('search/', search, name='search'),
+    path('autocomplete/', autocomplete, name='autocomplete'),
 ]
